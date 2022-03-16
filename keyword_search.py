@@ -36,16 +36,19 @@ class KeywordSearch:
             if elem.text not in list_keywords[self.keyword]:
                 list_keywords[self.keyword].append(elem.text)
 
-    def save_csv(self, list_keywords):
-        df = pd.DataFrame(list_keywords)
+    def collect_doc_num(self, keyword):
+        num = self.driver.find_element(by=By.XPATH, value=f"//a[contains(text(),'{keyword}')]/../../td[5]").text
+        return num 
 
-        x = dt.datetime.now()
-        date = x.strftime("%Y%m%d%H%M%S")
-        file_name = self.keyword+date
+    def save_csv(self, list_keywords=None, df=pd.DataFrame([])):
+        # x = dt.datetime.now()
+        # date = x.strftime("%Y%m%d%H%M%S")
+        # file_name = self.keyword+date
+        if df.empty:
+            df = pd.DataFrame(list_keywords)
 
-        df.to_csv(f"./keyword_list({file_name}).csv", encoding='utf-8-sig', index=False)
+        df.to_csv(f"./keyword_list({self.keyword}).csv", encoding='utf-8-sig', index=False)
 
-# os.path.isfile(file)
 
 keyword ='끈기'
 url = "https://whereispost.com/keyword/" 

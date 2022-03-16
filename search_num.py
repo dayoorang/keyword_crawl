@@ -8,22 +8,38 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 import pandas as pd
 
-from keyword_search import selenium_start, search_click, save_csv
+from keyword_search import KeywordSearch
 
  #keyword_list(끈기)
 
-df = pd.read_csv('keyword_list(끈기).csv')
+keyword = '끈기'
+df = pd.read_csv(f'keyword_list({keyword}).csv')
 
 url = "https://whereispost.com/keyword/" 
-selenium_start(url)
-
-list_keywords = []
-for index, row in keyword_list.iterrows(): 
-    keyword = row[0]
-    list_keywords['검색수'].append(search_click(keyword))
 
 
-df['검색수'] = list_keywords
-df.to_csv(f"./keyword_list({keyword}).csv", encoding='utf-8-sig', index=False)
+if __name__ == "__main__":
+    keyword_search = KeywordSearch(url, keyword=keyword)
+    keyword_search.selenium_start()
 
-print(list_keywords)
+
+    list_keywords = []
+    for index, row in df.iterrows(): 
+        if row[0]:
+            keyword = row[0]
+            keyword_search.search_click(keyword)
+            time.sleep(3)
+            # keyword 숫자 
+            keyword_num =  keyword_search.collect_doc_num(keyword)
+            list_keywords.append(keyword_num)
+            print(list_keywords)
+
+    df['검색수'] = list_keywords
+
+    # print(df)
+    # print(df.shape)
+    # input()
+    # input()
+    keyword_search.save_csv(df=df)
+
+    keyword_search.driver.quit()
