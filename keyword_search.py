@@ -8,6 +8,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 import pandas as pd
 from keyword_list import keyword_list
+import datetime as dt
+
 
 class KeywordSearch:
     def __init__(self, url, keyword):
@@ -36,14 +38,21 @@ class KeywordSearch:
 
     def save_csv(self, list_keywords):
         df = pd.DataFrame(list_keywords)
-        df.to_csv(f"./keyword_list({self.keyword}).csv", encoding='utf-8-sig', index=False)
 
+        x = dt.datetime.now()
+        date = x.strftime("%Y%m%d%H%M%S")
+        file_name = self.keyword+date
 
+        df.to_csv(f"./keyword_list({file_name}).csv", encoding='utf-8-sig', index=False)
+
+# os.path.isfile(file)
 
 keyword ='끈기'
 url = "https://whereispost.com/keyword/" 
 
 keyword_list = keyword_list(keyword)
+
+
 
 if __name__ == "__main__":
     keyword_search = KeywordSearch(url, keyword)

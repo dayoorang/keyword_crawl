@@ -1,2 +1,5 @@
 *.csv
 *.xlsx
+
+keyword_list.py
+venv
