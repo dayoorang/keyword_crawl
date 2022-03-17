@@ -1,21 +1,29 @@
-import time
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 import pandas as pd
-from keyword_list import keyword_list
 import datetime as dt
 
+from bs4 import BeautifulSoup
+from lxml import etree
+import requests
+import urllib.request
+from urllib.parse import urlparse, urlencode
+import numpy as np
+import re
 
 class KeywordSearch:
     def __init__(self, url, keyword):
         self.url = url 
         self.keyword = keyword
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+        self.keyword_list = {keyword:[]}
 
     def selenium_start(self):
         #해당 url로 이동 및 최초 검색
@@ -23,6 +31,7 @@ class KeywordSearch:
 
 
     def search_click(self,key_elem):
+        elem = WebDriverWait(self.driver,timeout=5).until(EC.presence_of_element_located((By.XPATH, '//*[@id="keyword"]')))
         elem = self.driver.find_element(by=By.XPATH, value='//*[@id="keyword"]')
         elem.click()
         elem.send_keys(key_elem)
@@ -30,45 +39,83 @@ class KeywordSearch:
 
 
     def collect_keyword(self):
-        # elems = driver.find_elements_by_xpath('//*[@id="relkey"]/li/a')
         elems = self.driver.find_elements(by=By.XPATH, value='//*[@id="relkey"]/li/a')        
         for elem in elems:
-            if elem.text not in list_keywords[self.keyword]:
-                list_keywords[self.keyword].append(elem.text)
+
+            if elem.text not in self.keyword_list[self.keyword]:
+                self.keyword_list[self.keyword].append(elem.text)
 
     def collect_doc_num(self, keyword):
+        elem = WebDriverWait(self.driver,timeout=5).until(EC.presence_of_element_located((By.XPATH, f"//a[contains(text(),'{keyword}')]/../../td[5]")))
         num = self.driver.find_element(by=By.XPATH, value=f"//a[contains(text(),'{keyword}')]/../../td[5]").text
         return num 
 
-    def save_csv(self, list_keywords=None, df=pd.DataFrame([])):
-        # x = dt.datetime.now()
-        # date = x.strftime("%Y%m%d%H%M%S")
-        # file_name = self.keyword+date
+    def save_csv(self, df=pd.DataFrame([])):
         if df.empty:
-            df = pd.DataFrame(list_keywords)
+            df = pd.DataFrame(self.keyword_list)
 
         df.to_csv(f"./keyword_list({self.keyword}).csv", encoding='utf-8-sig', index=False)
 
 
-keyword ='끈기'
-url = "https://whereispost.com/keyword/" 
-
-keyword_list = keyword_list(keyword)
 
 
+class KeywordSearchGoogle:
+    def __init__(self, url, keyword):
+        self.url = url 
+        self.keyword = keyword
+        self.keyword_list = {keyword:[]}
 
-if __name__ == "__main__":
-    keyword_search = KeywordSearch(url, keyword)
-    keyword_search.selenium_start()
-    keyword_search.search_click(keyword)
+    def requests_start(self):
+        #해당 url로 이동 및 최초 검색
+        data = {'q': self.keyword,
+                'cp': str(len(self.keyword)),
+                'client': 'gws-wiz',
+                'xssi': 't',
+                'hl': 'ko',
+                'authuser': '0',
+                'psi': 'wG4xYoHqGs_pwQOGtLdw.1647406785738',
+                'dpr': '1'}
+
+        params = urlencode(data)
+
+        headers = {
+                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
+                }
+
+        response = requests.get(f'https://www.google.com/complete/search?{params}', headers=headers)
+        print(response.status_code)
+
+        return response.text
 
 
-    list_keywords = {keyword:[]}
-    for key_elem in keyword_list:
-        keyword_search.search_click(key_elem)
-        time.sleep(3)
-        keyword_search.collect_keyword()
+    def regular_expression_work(self,results):
+        p1 = re.compile(r'''(<b>|\\|\d|\[|\]|,|{|}|[a-zA-Z]+|-|:|'|\)|/|_)''')
+        results1 = p1.sub('',results)
+        p2 = re.compile(r'</>')
+        results2 = p2.sub('',results1)
+        p3 = re.compile(r'""')
+        results3 = p3.sub(',',results2)
+        p4 = re.compile(r',,|"|\n')
+        results4 = p4.sub('',results3).strip()
 
-    keyword_search.save_csv(list_keywords)
+        print('regular_expression_work :\n',results4.split(','))
+        return results4.split(',')
 
-    keyword_search.driver.quit()
+
+    def collect_keyword(self):
+        elems = self.regular_expression_work(self.requests_start())
+        for elem in elems:
+            if elem not in self.keyword_list[self.keyword]:
+                self.keyword_list[self.keyword].append(elem)
+
+    def collect_doc_num(self, keyword):
+        elem = WebDriverWait(self.driver,timeout=5).until(EC.presence_of_element_located((By.XPATH, f"//a[contains(text(),'{keyword}')]/../../td[5]")))
+        num = self.driver.find_element(by=By.XPATH, value=f"//a[contains(text(),'{keyword}')]/../../td[5]").text
+        return num 
+
+    def save_csv(self, df=pd.DataFrame([])):
+        if df.empty:
+            df = pd.DataFrame(self.keyword_list)
+
+        df.to_csv(f"./keyword_list({self.keyword}).csv", encoding='utf-8-sig', index=False)
+
