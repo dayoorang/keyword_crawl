@@ -1,49 +1,40 @@
-from keyword_search import KeywordSearchGoogle
-
-# keyword = '블로그'
-# url = f'https://www.google.com/complete/search?q={keyword}'
-
-
-# data = {'q': keyword,
-# 'cp': str(len(keyword)),
-# 'client': 'gws-wiz',
-# 'xssi': 't',
-# 'hl': 'ko',
-# 'authuser': '0',
-# 'psi': 'wG4xYoHqGs_pwQOGtLdw.1647406785738',
-# 'dpr': '1'}
+from bs4 import BeautifulSoup
+from lxml import etree
+import requests
+import urllib.request
+from urllib.parse import urlparse, urlencode
+import numpy as np
+import re
 
 
-# params = urlencode(data)
 
-# headers = {
-#         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
-#         }
+url = 'https://memory-log.tistory.com/433'
+headers = {
+            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
+            }
 
-# response = requests.get(f'https://www.google.com/complete/search?{params}', headers=headers)
-# print(response.status_code)
+response = requests.get(url, headers=headers)
 
-# results = response.text
-
-# p1 = re.compile(r'''(<b>|\\|\d|\[|\]|,|{|}|[a-zA-Z]+|-|:|'|\)|/|_)''')
-# results1 = p1.sub('',results)
-# p2 = re.compile(r'</>')
-# results2 = p2.sub('',results1)
-# print(results2)
-# p3 = re.compile(r'""')
-# results3 = p3.sub(',',results2)
-# print(results3)
-# p4 = re.compile(r',,|"|\n')
-# results4 = p4.sub('',results3).strip()
-# print(results4)
-# print(results4.split(','))
+soup = BeautifulSoup(response.text, 'html.parser')
 
 
-if __name__ == "__main__":
-    keyword = '블로그'
-    url = f'https://www.google.com/complete/search?q={keyword}'
-    keyword_search_google = KeywordSearchGoogle(url, keyword)
+h1_tag = soup.find_all('h1')
+h1_list = [ h1.get_text().strip() for h1 in h1_tag ]
 
-    keyword_search_google.requests_start()
-    keyword_search_google.collect_keyword()
-    print(keyword_search_google.keyword_list)
+print('h1_list :', h1_list)
+h2_tag = soup.find_all('h2')
+h2_list = [ h2.get_text().strip() for h2 in h2_tag ]
+print('h2_list :', h2_list)
+h3_tag = soup.find_all('h3')
+h3_list = [ h3.get_text().strip() for h3 in h3_tag ]
+print('h3_list :', h3_list)
+h4_tag = soup.find_all('h4')
+h4_list = [ h4.get_text().strip() for h4 in h4_tag ]
+print('h4_list :', h4_list)
+
+p_tag = soup.find_all('p')
+p_list = [ p.get_text().strip() for p in p_tag if p.get_text().strip() != '']
+print('p_list :', p_list)
+
+
+print('Block\xa0Deal 블록딜이란\xa0시간')

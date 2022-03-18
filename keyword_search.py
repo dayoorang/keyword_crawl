@@ -61,14 +61,15 @@ class KeywordSearch:
 
 class KeywordSearchGoogle:
     def __init__(self, url, keyword):
-        self.url = url 
         self.keyword = keyword
         self.keyword_list = {keyword:[]}
-
-    def requests_start(self):
+        self.key_elem = None
+        
+    def requests_start(self, key_elem):
+        self.key_elem= key_elem
         #해당 url로 이동 및 최초 검색
-        data = {'q': self.keyword,
-                'cp': str(len(self.keyword)),
+        data = {'q': key_elem,
+                'cp': str(len(key_elem)),
                 'client': 'gws-wiz',
                 'xssi': 't',
                 'hl': 'ko',
@@ -83,13 +84,15 @@ class KeywordSearchGoogle:
                 }
 
         response = requests.get(f'https://www.google.com/complete/search?{params}', headers=headers)
-        print(response.status_code)
+        
+        if response.status_code != 200:
+            print(response.status_code)
 
         return response.text
 
 
     def regular_expression_work(self,results):
-        p1 = re.compile(r'''(<b>|\\|\d|\[|\]|,|{|}|[a-zA-Z]+|-|:|'|\)|/|_)''')
+        p1 = re.compile(r'''(<b>|\\|\d|\[|\]|,|{|}|[a-zA-Z]+|-|:|'|\)|/|_|\.|\?)''')
         results1 = p1.sub('',results)
         p2 = re.compile(r'</>')
         results2 = p2.sub('',results1)
@@ -98,24 +101,20 @@ class KeywordSearchGoogle:
         p4 = re.compile(r',,|"|\n')
         results4 = p4.sub('',results3).strip()
 
-        print('regular_expression_work :\n',results4.split(','))
+        # print('regular_expression_work :\n',results4.split(','))
         return results4.split(',')
 
 
     def collect_keyword(self):
-        elems = self.regular_expression_work(self.requests_start())
+        elems = self.regular_expression_work(self.requests_start(self.key_elem))
         for elem in elems:
-            if elem not in self.keyword_list[self.keyword]:
+            if elem not in self.keyword_list[self.keyword] and elem:
                 self.keyword_list[self.keyword].append(elem)
-
-    def collect_doc_num(self, keyword):
-        elem = WebDriverWait(self.driver,timeout=5).until(EC.presence_of_element_located((By.XPATH, f"//a[contains(text(),'{keyword}')]/../../td[5]")))
-        num = self.driver.find_element(by=By.XPATH, value=f"//a[contains(text(),'{keyword}')]/../../td[5]").text
-        return num 
+        print('keyword list : \n',len(self.keyword_list[self.keyword]))
 
     def save_csv(self, df=pd.DataFrame([])):
         if df.empty:
             df = pd.DataFrame(self.keyword_list)
-
-        df.to_csv(f"./keyword_list({self.keyword}).csv", encoding='utf-8-sig', index=False)
+    
+        df.to_csv(f"keyword_list({self.keyword}_google).csv", encoding='utf-8-sig', index=False)
 
